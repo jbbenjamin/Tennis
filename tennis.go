@@ -1,0 +1,142 @@
+package main
+
+import (
+	"bufio"
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+)
+
+//define command argument flags and variables to be used
+var p1name = flag.String("p1name", "p1", "The name for player 1")
+var p2name = flag.String("p2name", "p2", "The name for player 2")
+var p1score = flag.String("p1score", "Love", "The intial score for player 1")
+var p2score = flag.String("p2score", "Love", "The intial score for player 2")
+var p1wins = flag.Int("p1wins", 0, "The intial number of wins for player 1")
+var p2wins = flag.Int("p2wins", 0, "The intial number of wins for player 2")
+var mode = flag.String("mode", "set", "Whether to run the program in game or set mode")
+
+func gameMode(p1n string, p2n string, p1s string, p2s string) { //game mode scoring
+
+	scoreMap := make(map[string]int) //maps score words to number equivalents
+	scoreMap["Love"] = 0
+	scoreMap["Fifteen"] = 1
+	scoreMap["Thirty"] = 2
+	scoreMap["Forty"] = 3
+	scoreMap["Advantage"] = 4
+	p1num := scoreMap[p1s]
+	p2num := scoreMap[p2s]
+
+	wscoreMap := make(map[int]string) //maps score numbers to word equivalents
+	wscoreMap[0] = "Love"
+	wscoreMap[1] = "Fifteen"
+	wscoreMap[2] = "Thirty"
+	wscoreMap[3] = "Forty"
+
+	var input = bufio.NewScanner(os.Stdin) //create scanner
+	var event string                       //stores (user input) scoring event
+
+	for p1num < 3 && p2num < 3 { //while either player is at "Thirty" or less...
+		input.Scan() //user inputs scoring event
+		event = strings.TrimSpace(input.Text())
+
+		switch {
+		case event == (p1n + " scores!"): //if player one scores
+			p1num++ //player one gets a point
+			p1s = wscoreMap[p1num]
+			fmt.Printf("%v - %v\n", p1s, p2s) //print score
+		case event == (p2n + " scores!"): //if player two scores
+			p2num++ //player two gets a point
+			p2s = wscoreMap[p2num]
+			fmt.Printf("%v - %v\n", p1s, p2s) //print score
+		default:
+			fmt.Println("Invalid input")
+		}
+	}
+
+	var gameWon = false
+	for gameWon == false { //while a game is not won
+		input.Scan() //user inputs scoring event
+		event = strings.TrimSpace(input.Text())
+
+		switch {
+		case p1num > p2num && event == (p1n+" scores!"): //only p1 has Forty or the advantage and scores
+			fmt.Printf("%v wins the game", p1n)
+			gameWon = true
+		case p2num > p1num && event == (p2n+" scores!"): //only p2 has Forty or the advantage and scores
+			fmt.Printf("%v wins the game", p2n)
+			gameWon = true
+		case p1num > p2num && event == (p2n+" scores!"): //p1 has Forty or the advantage and p2 scores
+			p2num++             //player two gets a point
+			if p1num == p2num { //if deuce...
+				fmt.Println("Deuce!")
+			} else { //p1 has Forty and p2 has less than Forty
+				p2s = wscoreMap[p2num]
+				fmt.Printf("%v - %v\n", p1s, p2s) //print score
+			}
+		case p2num > p1num && event == (p1n+" scores!"): //p2 has Forty or the advantage and p1 scores
+			p1num++             //player one gets a point
+			if p1num == p2num { //if deuce...
+				fmt.Println("Deuce!")
+			} else {
+				p1s = wscoreMap[p1num]
+				fmt.Printf("%v - %v\n", p1s, p2s) //print score
+			}
+		case p1num == p2num: //currently a deuce...
+			if event == (p1n + " scores!") {
+				p1num++ //player one gets a point
+				fmt.Printf("Advantage %v!\n", p1n)
+			}
+			if event == (p2n + " scores!") {
+				p2num++ //player two gets a point
+				fmt.Printf("Advanatge %v!\n", p2n)
+			}
+		default:
+			fmt.Println("Invalid Input")
+		}
+	}
+
+}
+
+func main() {
+	flag.Parse()
+
+	if *p1score != "Love" && *p1score != "Fifteen" && *p1score != "Thirty" && *p1score != "Forty" && *p1score != "Advantage" {
+		fmt.Println("Invalid Input")
+		fmt.Println("Player 1 score must be 'Love', 'Fifteen', 'Thirty', 'Forty', or 'Advantage'")
+		os.Exit(0)
+	}
+
+	if *p2score != "Love" && *p2score != "Fifteen" && *p2score != "Thirty" && *p2score != "Forty" && *p2score != "Advantage" {
+		fmt.Println("Invalid Input")
+		fmt.Println("Player 2 score must be 'Love', 'Fifteen', 'Thirty', 'Forty', or 'Advantage'")
+		os.Exit(0)
+	}
+
+	if *p1score == "Advantage" && *p2score == "Advantage" {
+		fmt.Println("Invalid Input")
+		fmt.Println("Both players' scores cannot be 'Advantage'")
+		os.Exit(0)
+	}
+
+	if (*p1wins < 0 || *p1wins > 6) || (*p2wins < 0 || *p2wins > 6) {
+		fmt.Println("Invalid Input")
+		fmt.Println("Number of initial wins must be a value 0-6")
+		os.Exit(0)
+	}
+
+	if *p1score == "Advantage" {
+		*p2score = "Forty"
+	}
+
+	if *p2score == "Advantage" {
+		*p1score = "Forty"
+	}
+
+	fmt.Printf("Enter a scoring event: (Input should be in form '(Player name) scores!')")
+	if *mode == "game" {
+		gameMode(*p1name, *p2name, *p1score, *p2score)
+	}
+
+}

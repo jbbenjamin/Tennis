@@ -17,7 +17,7 @@ var p1wins = flag.Int("p1wins", 0, "The intial number of wins for player 1")
 var p2wins = flag.Int("p2wins", 0, "The intial number of wins for player 2")
 var mode = flag.String("mode", "set", "Whether to run the program in game or set mode")
 
-func gameMode(p1n string, p2n string, p1s string, p2s string) { //game mode scoring
+func gameMode(p1n string, p2n string, p1s string, p2s string, p1g int, p2g int) (p1numWins, p2numWins int) { //game mode scoring
 
 	scoreMap := make(map[string]int) //maps score words to number equivalents
 	scoreMap["Love"] = 0
@@ -62,10 +62,14 @@ func gameMode(p1n string, p2n string, p1s string, p2s string) { //game mode scor
 
 		switch {
 		case p1num > p2num && event == (p1n+" scores!"): //only p1 has Forty or the advantage and scores
-			fmt.Printf("%v wins the game", p1n)
+			fmt.Printf("%v wins the game\n", p1n)
+			p1numWins = p1g + 1
+			p2numWins = p2g
 			gameWon = true
 		case p2num > p1num && event == (p2n+" scores!"): //only p2 has Forty or the advantage and scores
-			fmt.Printf("%v wins the game", p2n)
+			fmt.Printf("%v wins the game\n", p2n)
+			p2numWins = p2g + 1
+			p1numWins = p1g
 			gameWon = true
 		case p1num > p2num && event == (p2n+" scores!"): //p1 has Forty or the advantage and p2 scores
 			p2num++             //player two gets a point
@@ -96,7 +100,51 @@ func gameMode(p1n string, p2n string, p1s string, p2s string) { //game mode scor
 			fmt.Println("Invalid Input")
 		}
 	}
+	return p1numWins, p2numWins
+}
 
+func setMode(p1n string, p2n string, p1s string, p2s string, p1numWins int, p2numWins int) {
+	var p1g = p1numWins
+	var p2g = p2numWins
+	for p1g < 6 && p2g < 6 {
+		p1g, p2g = gameMode(p1n, p2n, p1s, p2s, p1g, p2g)
+		p1s = "Love"
+		p2s = "Love"
+	}
+
+	var matchWon = false
+	for matchWon == false {
+
+		switch {
+		case p1g > p2g && (p1g-p2g) >= 2:
+			fmt.Printf("%v wins the game and set %v-%v", p1n, p1g, p2g)
+			matchWon = true
+			return
+		case p2g > p1g && (p2g-p1g) >= 2:
+			fmt.Printf("%v wins the game and set %v-%v", p2n, p1g, p2g)
+			matchWon = true
+			return
+		case p1g == 6 && p2g == 5: //possibly final game
+			break
+		case p2g == 6 && p1g == 5: //possibly final game
+			break
+		case p1g == 6 && p2g == 6: //final game!!!
+			p1g, p2g = gameMode(p1n, p2n, p1s, p2s, p1g, p2g)
+			if p1g > p2g {
+				fmt.Printf("%v wins the game and set %v-%v", p1n, p1g, p2g)
+				matchWon = true
+				return
+			}
+
+			fmt.Printf("%v wins the game and set %v-%v", p2n, p1g, p2g)
+			matchWon = true
+			return
+		}
+		p1g, p2g = gameMode(p1n, p2n, p1s, p2s, p1g, p2g)
+		p1s = "Love"
+		p2s = "Love"
+
+	}
 }
 
 func main() {
@@ -126,6 +174,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *mode != "set" && *mode != "game" {
+		fmt.Println("Invalid Input")
+		fmt.Println("mode must be either 'set' or 'game' ")
+		os.Exit(0)
+	}
+
 	if *p1score == "Advantage" {
 		*p2score = "Forty"
 	}
@@ -134,9 +188,11 @@ func main() {
 		*p1score = "Forty"
 	}
 
-	fmt.Printf("Enter a scoring event: (Input should be in form '(Player name) scores!')")
+	fmt.Printf("Enter a scoring event: (Input should be of form '<Player name> scores!')")
 	if *mode == "game" {
-		gameMode(*p1name, *p2name, *p1score, *p2score)
+		gameMode(*p1name, *p2name, *p1score, *p2score, *p1wins, *p2wins)
+	} else {
+		setMode(*p1name, *p2name, *p1score, *p2score, *p1wins, *p2wins)
 	}
 
 }
